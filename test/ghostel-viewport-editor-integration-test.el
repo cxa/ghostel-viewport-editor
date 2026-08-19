@@ -417,7 +417,7 @@
             (zerop
              (call-process
               (executable-find "dtach") nil nil nil
-              "-n" socket "-E" (executable-find "zsh"))))
+              "-n" socket "-E" (executable-find "zsh") "-i")))
            (should
             (ghostel-viewport-editor-integration-test--wait-until
              (lambda ()
@@ -560,7 +560,7 @@
               (zerop
                (call-process
                 (executable-find "dtach") nil nil nil
-                "-n" socket "-E" (executable-find "zsh")))))
+                "-n" socket "-E" (executable-find "zsh") "-i"))))
            (ert-info ("waiting for old persistent zsh")
              (should
               (ghostel-viewport-editor-integration-test--wait-until
@@ -695,7 +695,7 @@
               (zerop
                (call-process
                 (executable-find "dtach") nil nil nil
-                "-n" socket "-E" (executable-find "zsh")))))
+                "-n" socket "-E" (executable-find "zsh") "-i"))))
            (ert-info ("waiting for fresh zsh server")
              (should
               (ghostel-viewport-editor-integration-test--wait-until
