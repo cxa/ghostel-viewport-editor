@@ -105,7 +105,7 @@ window displaying the viewport."
 (defvar-local ghostel-viewport-editor--suppress-kill-query nil)
 
 ;; Emacs 28 cannot wrap the generated constructor's complete keyword list.
-(with-suppressed-warnings ((docstrings))
+(with-no-warnings
   (cl-defstruct (ghostel-viewport-editor--request
                  (:constructor ghostel-viewport-editor--make-request))
 	        "Internal state for one routed editor request."
