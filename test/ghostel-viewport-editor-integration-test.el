@@ -404,7 +404,8 @@
           attach-process)
      (unwind-protect
          (save-window-excursion
-           (with-temp-file (expand-file-name ".zshenv" zdot-directory))
+           (with-temp-file (expand-file-name ".zshenv" zdot-directory)
+             (insert "skip_global_compinit=1\n"))
            (with-temp-file (expand-file-name ".zshrc" zdot-directory)
              (insert
               "PROMPT='GVE> '\n"
@@ -531,7 +532,8 @@
           attach-process)
      (unwind-protect
          (save-window-excursion
-           (with-temp-file (expand-file-name ".zshenv" zdot-directory))
+           (with-temp-file (expand-file-name ".zshenv" zdot-directory)
+             (insert "skip_global_compinit=1\n"))
            (with-temp-file (expand-file-name ".zshrc" zdot-directory)
              (insert
               "PROMPT='GVE> '\n"
@@ -678,7 +680,8 @@
           attach-process)
      (unwind-protect
          (save-window-excursion
-           (with-temp-file (expand-file-name ".zshenv" zdot-directory))
+           (with-temp-file (expand-file-name ".zshenv" zdot-directory)
+             (insert "skip_global_compinit=1\n"))
            (with-temp-file (expand-file-name ".zshrc" zdot-directory)
              (insert
               "PROMPT='GVE> '\n"
