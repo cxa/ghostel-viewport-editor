@@ -104,33 +104,35 @@ window displaying the viewport."
 (defvar-local ghostel-viewport-editor--request nil)
 (defvar-local ghostel-viewport-editor--suppress-kill-query nil)
 
-(cl-defstruct (ghostel-viewport-editor--request
-               (:constructor ghostel-viewport-editor--make-request))
-	      "Internal state for one routed editor request."
-	      id
-	      source-buffer
-	      directory
-	      arguments
-	      file
-	      target
-	      target-id
-	      line
-	      column
-	      kind
-	      response-file
-	      base-buffer
-	      base-created-p
-	      base-tick
-	      base-text
-	      base-file-digest
-	      viewport-buffer
-	      window-configuration
-	      live-viewports
-	      source-window-parameters
-	      source-overriding-local-map
-	      source-overriding-local-map-local-p
-	      phase
-	      outcome)
+;; Emacs 28 cannot wrap the generated constructor's complete keyword list.
+(with-suppressed-warnings ((docstrings))
+  (cl-defstruct (ghostel-viewport-editor--request
+                 (:constructor ghostel-viewport-editor--make-request))
+	        "Internal state for one routed editor request."
+	        id
+	        source-buffer
+	        directory
+	        arguments
+	        file
+	        target
+	        target-id
+	        line
+	        column
+	        kind
+	        response-file
+	        base-buffer
+	        base-created-p
+	        base-tick
+	        base-text
+	        base-file-digest
+	        viewport-buffer
+	        window-configuration
+	        live-viewports
+	        source-window-parameters
+	        source-overriding-local-map
+	        source-overriding-local-map-local-p
+	        phase
+	        outcome))
 
 ;;;; Generated support files
 
