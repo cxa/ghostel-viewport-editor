@@ -106,6 +106,7 @@ window displaying the viewport."
 
 (cl-defstruct (ghostel-viewport-editor--request
                (:constructor ghostel-viewport-editor--make-request))
+	      "Internal state for one routed editor request."
 	      id
 	      source-buffer
 	      directory
