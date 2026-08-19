@@ -128,9 +128,7 @@ package-lint:
 	  -f package-lint-batch-and-exit ghostel-viewport-editor.el
 
 checkdoc:
-	$(EMACS) -Q --batch -L . \
-	  --eval '(find-file "ghostel-viewport-editor.el")' \
-	  -f checkdoc-batch
+	$(EMACS) -Q --batch -L . -l test/checkdoc-batch.el
 
 clean:
 	$(RM) ghostel-viewport-editor.elc
