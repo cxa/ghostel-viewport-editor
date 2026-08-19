@@ -4,7 +4,8 @@ Edit =$EDITOR= and =$VISUAL= requests from programs running in
 [[https://github.com/dakra/ghostel][Ghostel]] in an Emacs viewport.  It is intended for terminal applications such
 as Codex CLI, Pi, and Claude Code, as well as Git editor requests.
 
-Current release: =0.1.0=.  Written by realazy and developed at
+This project is pre-release; current development happens on =main=.  Written
+by realazy and developed at
 [[https://github.com/cxa/ghostel-viewport-editor][github.com/cxa/ghostel-viewport-editor]].
 
 The package changes editor variables only in the environment inherited by
@@ -23,12 +24,12 @@ Remote Ghostel processes are left unchanged.
 * Installation
 
 The recommended installation uses =use-package= with its =:vc= support and
-tracks the latest tagged release:
+tracks the newest commit on the repository's default branch:
 
 #+begin_src emacs-lisp
 (use-package ghostel-viewport-editor
   :vc (:url "https://github.com/cxa/ghostel-viewport-editor.git"
-       :rev :last-release)
+       :rev :newest)
   :after ghostel
   :config
   (ghostel-viewport-editor-global-mode 1))
@@ -36,6 +37,8 @@ tracks the latest tagged release:
 
 The =:vc= keyword requires Emacs 30.1 or a recent standalone =use-package=
 version that provides it.  The package itself supports Emacs 28.1 and later.
+Use =M-x package-vc-upgrade= to update an existing checkout to the newest
+commit.
 On older installations, clone the repository, place it on =load-path=, and
 enable it after Ghostel loads:
 
