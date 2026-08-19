@@ -1,0 +1,58 @@
+#+title: Contributing
+
+Bug reports and pull requests are welcome.  Include an ERT regression test for
+behavior changes.
+
+* Development setup
+
+The minimum supported version is Emacs 28.1.  Install the development-only
+lint dependency and run the local checks:
+
+#+begin_src shell
+make bootstrap
+make check
+#+end_src
+
+=make check= byte-compiles with warnings as errors, runs the unit tests, installs
+the package in an isolated directory to verify its generated autoloads, and
+runs =package-lint= and =checkdoc=.  =make bootstrap= installs =package-lint=
+below =.packages/=, which Git ignores.
+
+Also run the integration suite:
+
+#+begin_src shell
+make integration
+#+end_src
+
+This target uses =git= and =curl= to provision pinned Compat and Ghostel source
+trees plus a matching prebuilt Ghostel module below =.packages/=.  The default
+is the minimum supported Ghostel 0.35.0 source; because that tag has no release
+asset, its verified compatible module comes from Ghostel 0.35.1.  A network
+connection is required on the first run.  Every downloaded native module is
+checked against the SHA-256 pinned in the Makefile or CI matrix before loading.
+
+Cases that exercise dtach or zsh skip automatically when the corresponding
+program is absent.  CI installs both programs and runs =make
+integration-strict=, which fails if any integration case is skipped.  The CI
+matrix covers the minimum supported Ghostel and a separately pinned current
+stable version.
+
+=make check= leaves =ghostel-viewport-editor.elc= in the working tree for the
+compile check; Git ignores it and =make clean= removes it.  Do not commit or
+package generated =.elc= files.  Enabling the package also creates
+runtime support below =ghostel-viewport-editor-state-directory=, outside the
+repository by default; those files are generated artifacts, not release
+contents.  =make distclean= removes the local =.elc= and repository-local
+=.packages/= directory before an archive is made.  It never removes a directory
+named through an overridden =PACKAGE_USER_DIR= outside this repository.
+
+* Design constraints
+
+- Change editor variables only in the environment of processes placed in
+  scope by the caller.
+- Keep viewport edits isolated from the backing buffer until finish.
+- Use fallback only before acceptance; after acceptance, preserve the viewport
+  when the backing buffer or file has changed.
+- Keep accepted requests owned by the Emacs instance that accepted them; the
+  package does not recover them after that process exits.
+- Keep regression tests focused on observable behavior.

@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs_version:
+          - "28.1"
+          - snapshot
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Emacs
+        uses: purcell/setup-emacs@1f1e9c315c2e3312705e920ae1ddd7e0e2b13c69
+        with:
+          version: ${{ matrix.emacs_version }}
+
+      - name: Cache development packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .packages
+          key: emacs-${{ matrix.emacs_version }}-${{ hashFiles('Makefile') }}
+
+      - name: Install development dependencies
+        run: make bootstrap
+
+      - name: Compile, test, and lint
+        run: make check
+
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ghostel_version: "0.35.0"
+            ghostel_rev: 42a5183345fc052b7ce529f4445965b0e145a771
+            module_version: "0.35.1"
+            module_sha256: a3c1661461a0c527d30a3a0f8871d84bda2eddf25e216d88ec4f6b9ac4afa08f
+          - ghostel_version: "0.50.0"
+            ghostel_rev: 5143313e07ba8a6b095f85154e6345f87479d63e
+            module_version: "0.50.0"
+            module_sha256: e9075a05979d7df6eae11f90b68b30065f2c55a70eefa2bcb802ac322ab0d09c
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Emacs
+        uses: purcell/setup-emacs@1f1e9c315c2e3312705e920ae1ddd7e0e2b13c69
+        with:
+          version: "28.1"
+
+      - name: Install integration tools
+        run: sudo apt-get update && sudo apt-get install --yes dtach zsh
+
+      - name: Cache integration packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .packages
+          key: integration-${{ matrix.ghostel_version }}-${{ matrix.module_version }}-${{ hashFiles('Makefile') }}
+
+      - name: Run strict integration suite
+        run: >-
+          make integration-strict
+          GHOSTEL_VERSION=${{ matrix.ghostel_version }}
+          GHOSTEL_REV=${{ matrix.ghostel_rev }}
+          GHOSTEL_MODULE_VERSION=${{ matrix.module_version }}
+          GHOSTEL_MODULE_SHA256=${{ matrix.module_sha256 }}

@@ -1,0 +1,22 @@
+#+title: Security policy
+
+ghostel-viewport-editor accepts local editor requests from programs running in
+Ghostel.  Those programs and their target files remain untrusted when a request
+reaches Emacs.  Viewport handling is limited to supported single-file requests,
+and finishing refuses to overwrite backing content that changed after the edit
+was accepted.  On-disk byte digests detect content rewrites even if file size
+and modification time are preserved.
+
+Generated files include a routing token.  Keep the configured state directory
+private and do not share its contents.  Accepted requests belong to the Emacs
+instance that accepted them and are not recovered after it exits.
+
+Please report vulnerabilities privately to realazy <xianan.chen@gmail.com>
+before opening a public issue.
+
+Include the affected version, Emacs and Ghostel versions, operating system,
+and a minimal reproduction when possible.  Please do not include real tokens,
+terminal transcripts containing secrets, or private file contents.
+
+Security fixes target the latest published release.  Users of older releases
+may need to upgrade.

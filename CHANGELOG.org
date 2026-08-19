@@ -1,0 +1,51 @@
+#+title: Changelog
+
+* 0.1.0 - 2026-08-19
+
+- Route supported external-editor requests from local Ghostel processes into
+  isolated Emacs viewport buffers without changing global editor variables.
+- Support files already visited in an unmodified Emacs buffer.  Fall back
+  before acceptance when the backing buffer already has unsaved changes.
+- Refuse to overwrite a backing buffer or file changed after acceptance;
+  finishing reports the conflict and keeps the viewport open.
+- Preserve the replaced editor as the fallback for rejected, unsupported, and
+  other pre-acceptance failures.  Never invoke it after acceptance.
+- Provide half-size adaptive display, a shortcut header, finish and cancel
+  commands, cancellation confirmation, request filtering, and =C-c '= manual
+  triggering.  Repeating the trigger reveals an existing viewport.
+- Let new persistent dtach servers inherit routing through Ghostel's pre-spawn
+  hook.  Route later editor calls through a stable state-directory dispatcher,
+  and provide explicit sourced-file activation for shells that never inherited
+  routing.
+- Reannounce pending requests across dtach detach and attach.  Accepted
+  requests remain owned by the Emacs process that accepted them and are not
+  recovered after it exits.
+- Release an accepted helper with an error when its source Ghostel buffer is
+  killed, while preserving any unsaved viewport text for recovery.
+- Keep =C-g= as standard =keyboard-quit= in viewport buffers; cancel explicitly
+  with =C-c C-k=.
+- Keep active requests intact across major-mode changes, refuse to disable the
+  viewport minor mode while a request is active, and make Backspace delete an
+  active region.
+- Detect on-disk content changes even when file size and modification time are
+  preserved.
+- Treat a verified disk write as successful when a later =after-save-hook=
+  signals, preventing an ambiguous failure after the file was changed.
+- Restore exact single-viewport window configurations without disrupting a
+  second live viewport.
+- Move restored Ghostel source windows to the live terminal cursor after
+  finishing or canceling, keeping the resumed prompt and input visible without
+  jumping into the terminal grid's trailing padding.
+- Lock originating shell windows against focus and all user input while their
+  viewport editor is active, restoring their prior state afterward.
+- Place point at the end when opening nonempty editor text, while honoring an
+  explicit =+LINE= or =+LINE:COLUMN= argument.
+- Reset zsh's prompt after its standard =edit-command-line= widget returns, so
+  a full Ghostel viewport does not resume with a blank prompt.
+- Allow an unchanged viewport to finish successfully without requiring a disk
+  write or misreporting a backing-target conflict.
+- Roll back partial global-mode installation and fully remove Ghostel hooks and
+  source-buffer bindings when the mode is disabled.
+- Run hermetic integration tests against both Ghostel 0.35.0 and the pinned
+  current stable version in CI; strict runs fail when any case is skipped, and
+  downloaded native modules are verified against pinned SHA-256 digests.

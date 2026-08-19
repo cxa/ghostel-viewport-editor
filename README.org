@@ -1,0 +1,241 @@
+#+title: ghostel-viewport-editor
+
+Edit =$EDITOR= and =$VISUAL= requests from programs running in
+[[https://github.com/dakra/ghostel][Ghostel]] in an Emacs viewport.  It is intended for terminal applications such
+as Codex CLI, Pi, and Claude Code, as well as Git editor requests.
+
+Current release: =0.1.0=.  Written by realazy and developed at
+[[https://github.com/cxa/ghostel-viewport-editor][github.com/cxa/ghostel-viewport-editor]].
+
+The package changes editor variables only in the environment inherited by
+Ghostel children.  It does not change Emacs's global environment, saved editor
+settings, or the user's shell startup files.
+
+* Requirements
+
+- Emacs 28.1 or later
+- Ghostel 0.35.0 or later
+- A local POSIX shell
+- =base64=, =mktemp=, and =ps= with =lstart= support
+
+Remote Ghostel processes are left unchanged.
+
+* Installation
+
+The recommended installation uses =use-package= with its =:vc= support and
+tracks the latest tagged release:
+
+#+begin_src emacs-lisp
+(use-package ghostel-viewport-editor
+  :vc (:url "https://github.com/cxa/ghostel-viewport-editor.git"
+       :rev :last-release)
+  :after ghostel
+  :config
+  (ghostel-viewport-editor-global-mode 1))
+#+end_src
+
+The =:vc= keyword requires Emacs 30.1 or a recent standalone =use-package=
+version that provides it.  The package itself supports Emacs 28.1 and later.
+On older installations, clone the repository, place it on =load-path=, and
+enable it after Ghostel loads:
+
+#+begin_src shell
+git clone https://github.com/cxa/ghostel-viewport-editor.git
+#+end_src
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "/path/to/ghostel-viewport-editor")
+(require 'ghostel)
+(require 'ghostel-viewport-editor)
+(ghostel-viewport-editor-global-mode 1)
+#+end_src
+
+Ghostel processes created after the mode is enabled inherit the viewport
+editor.  Disabling the mode stops injection into future processes; processes
+that already inherited it continue to use it while this Emacs is alive.
+
+* Editing
+
+When a terminal program invokes one of =EDITOR=, =VISUAL=, =GIT_EDITOR=, or
+=GIT_SEQUENCE_EDITOR=, the package copies the file into an isolated viewport
+buffer associated with the originating Ghostel buffer.  The viewport is
+separate from the file's backing buffer; its contents reach the file only when
+the edit is finished successfully.
+
+In semi-char, line, copy, or Emacs input mode, type =C-c '= to send =C-x C-e=
+to the foreground program.  In char mode, type the program's =C-x C-e=
+binding directly.  The foreground program must support that binding and then
+invoke an external editor.  If that Ghostel buffer already owns a viewport,
+=C-c '= reveals and selects it instead of sending another request.
+
+When activation finds zsh's standard =edit-command-line= widget, it installs an
+idempotent wrapper that resets the prompt after the external editor returns.
+This prevents zsh's prompt-skipping redraw optimization from leaving a blank
+prompt in a full Ghostel viewport.  Other ZLE widgets are not changed.
+
+| Key       | Action                                      |
+|-----------+---------------------------------------------|
+| =C-c C-c= | Save, close the viewport, and release the CLI |
+| =C-x C-s= | Save, close the viewport, and release the CLI |
+| =C-x #=   | Save, close the viewport, and release the CLI |
+| =C-c C-k= | Cancel and leave the backing file unchanged |
+
+Canceling asks for confirmation when the viewport is nonempty or modified.
+An unchanged empty viewport cancels immediately.
+=C-g= retains its standard Emacs =keyboard-quit= behavior.
+
+Backspace deletes the active region, even when the selected major mode would
+otherwise enable View mode.  Without an active region it deletes backward
+normally.
+
+Changing the viewport's major mode is supported: the request, finish and
+cancel keys, and header survive the change.  The viewport minor mode cannot be
+disabled while a request is active; finish or cancel the request first.
+
+Finishing saves the viewport only if both the backing buffer and the file on
+disk still match the state accepted at the start of the edit.  The on-disk
+check includes a digest of the file bytes, so a rewrite is detected even when
+its size and modification time are preserved.  If either copy has changed,
+finishing reports a conflict and leaves the viewport open so its text is not
+lost.  Canceling never changes the backing file.
+
+If the file is written successfully and a later =after-save-hook= signals an
+error, the package verifies the bytes on disk, reports a warning, and still
+completes the request.  This avoids reporting a failed edit after the requested
+contents have already reached the file.
+
+After finishing or canceling, every visible window showing the originating
+Ghostel buffer follows Ghostel's live terminal cursor.  This shows the resumed
+input and prompt without jumping into the terminal grid's trailing padding.
+
+While a viewport is active, its originating shell windows cannot be selected
+through normal window navigation and reject keyboard, mouse, paste, and drop
+input.  Selecting one by another command immediately reveals the active
+viewport.  The original window and input state is restored on finish or
+cancel.
+
+The default display is adaptive:
+
+- A wide source window first tries the viewport on its right.
+- A tall source window first tries the viewport below it.
+- A successful split gives the viewport about half of the source window.
+- If that split does not fit, the other direction is tried before the viewport
+  uses the source window.
+
+The viewport header line shows the finish and cancel keys.
+For a nonempty editor file, the initial point is at the end of its text unless
+the editor command supplied an explicit =+LINE= or =+LINE:COLUMN= position.
+
+Set =ghostel-viewport-editor-display-function= to
+=ghostel-viewport-editor-display-same-window= to always use the source window.
+
+One plain local file is supported per invocation, using
+=[+LINE[:COLUMN]] [--] FILE=.  A filename beginning with =-= or =+= must follow
+=--=.  An invocation that uses unsupported options, names multiple files,
+names a directory or special file, or names a local target that cannot be read
+or created is passed to the editor value that the package replaced.
+
+A file already visited by Emacs is supported when its backing buffer is
+unmodified.  If that buffer already has unsaved changes, the request falls back
+before a viewport is accepted.  Once a viewport has been accepted, later
+backing-buffer or on-disk changes produce the finish conflict described above;
+the fallback editor is not run after acceptance.
+
+* Request filtering
+
+=ghostel-viewport-editor-accept-function= is nil by default, which accepts all
+supported requests.  A configured function receives a request plist and
+returns non-nil to use the viewport:
+
+#+begin_src emacs-lisp
+(setq ghostel-viewport-editor-accept-function
+      (lambda (request)
+        (let ((source (plist-get request :source-buffer))
+              (file (plist-get request :file)))
+          (and (buffer-live-p source)
+               (string-suffix-p ".md" file t)))))
+#+end_src
+
+The request contains =:source-buffer=, =:directory=, =:arguments=, =:file=,
+=:line=, =:column=, =:kind=, and =:request-id=.  If the function returns nil or
+signals an error, the preserved editor receives the original invocation.  If
+that editor variable was originally unset, the invocation fails rather than
+guessing an editor.
+
+Set =ghostel-viewport-editor-after-finish-function= to run one function after
+a successful finish.  It runs in the originating Ghostel buffer and receives
+the same request plist.  Callback errors are reported without changing the
+already completed edit.  The callback is not run after cancellation.
+
+* dtach
+
+The environment must be installed in the process *inside* dtach, not only in a
+later =dtach -a= client.
+
+** New sessions
+
+A dtach server created after the global mode is enabled inherits the helper
+automatically when its launcher runs =ghostel-pre-spawn-hook=.  The environment
+must reach the process that creates the persistent server, not only a later
+=dtach -a= client.
+
+For another launcher that starts the persistent server outside Ghostel, apply
+the complete environment explicitly:
+
+#+begin_src emacs-lisp
+(let ((process-environment
+       (ghostel-viewport-editor-environment process-environment)))
+  ;; Start `dtach -n' and its persistent child here.
+  ...)
+#+end_src
+
+The helper repeats an unanswered request while dtach has no attached client.
+Detaching and attaching Ghostel later therefore presents the pending viewport
+normally while the owning Emacs process is still alive.
+
+** Existing or restored sessions
+
+A restored dtach shell that inherited the package keeps a stable helper path
+under the configured state directory.  After another Emacs enables the package
+with that directory, the shell's next editor invocation uses the new Emacs
+automatically.  The parent shell environment is not changed and no activation
+command is displayed.
+
+This does not apply to a shell that never inherited the package.  At an idle
+prompt in that local Ghostel buffer, run:
+
+#+begin_example
+M-x ghostel-viewport-editor-enable-current-shell
+#+end_example
+
+After confirmation, the command sources a generated POSIX activation file in
+the current shell.  The terminal receives a direct source command; no =eval=
+command is constructed or displayed.  Activation is explicit and idempotent
+and does not attempt to infer prompt state.  Do not invoke it while a TUI or
+another foreground command is reading terminal input.
+
+Reannouncement is not crash recovery.  If the Emacs process that accepted an
+edit exits, that waiting editor invocation fails.  Another Emacs does not adopt
+the request or recover unsaved viewport text; invoke the editor again.
+
+* Generated files
+
+The stable helper, shell activation, private token, and response files are
+generated below:
+
+#+begin_example
+(locate-user-emacs-file "ghostel-viewport-editor/")
+#+end_example
+
+They are runtime artifacts, not editor sessions or backups, and can be
+regenerated.  Set
+=ghostel-viewport-editor-state-directory= before enabling the global mode to
+use another location.
+
+* Development
+
+See [[file:CONTRIBUTING.org][CONTRIBUTING.org]].
+
+* License
+
+GPL-3.0-or-later.  See [[file:LICENSE][LICENSE]].
