@@ -247,6 +247,58 @@
        (delete-directory work-directory t)))))
 
 (ert-deftest
+    ghostel-viewport-editor-integration-test-finish-refreshes-restored-source ()
+  "Finishing a viewport should repaint after its terminal application returns."
+  (skip-unless (ghostel-viewport-editor--supported-host-p))
+  (ghostel-viewport-editor-integration-test--with-runtime
+   (let* ((work-directory
+           (make-temp-file "ghostel-viewport-finish-refresh-" t))
+          (target (expand-file-name "prompt.md" work-directory))
+          (source (generate-new-buffer " *ghostel-viewport-finish-refresh*"))
+          redrawn
+          resumed
+          redrawn-after-resume
+          process)
+     (unwind-protect
+         (save-window-excursion
+           (switch-to-buffer source)
+           (ghostel-viewport-editor-global-mode 1)
+           (setq process
+                 (ghostel-exec
+                  source "/bin/sh"
+                  (list "-c"
+                        "exec ${EDITOR} \"$1\""
+                        "viewport-finish-refresh" target)))
+           (should
+            (ghostel-viewport-editor-integration-test--wait-until
+             (lambda ()
+               (ghostel-viewport-editor-integration-test--viewport source))))
+           (let ((original-force-redraw
+                  (symbol-function 'ghostel-force-redraw)))
+             (cl-letf (((symbol-function 'ghostel-force-redraw)
+                        (lambda ()
+                          (if resumed
+                              (setq redrawn-after-resume t)
+                            (setq redrawn t))
+                          (funcall original-force-redraw))))
+               (with-current-buffer
+                   (ghostel-viewport-editor-integration-test--viewport source)
+                 (insert "edited")
+                 (ghostel-viewport-editor-finish))
+               (should redrawn)
+               (setq resumed t)
+               (should (eq (window-buffer (selected-window)) source))
+               (should
+                (ghostel-viewport-editor-integration-test--wait-until
+                 (lambda () (not (process-live-p process)))))
+               (should
+                (ghostel-viewport-editor-integration-test--wait-until
+                 (lambda () redrawn-after-resume) 1)))))
+       (when (process-live-p process) (delete-process process))
+       (when (buffer-live-p source) (kill-buffer source))
+       (delete-directory work-directory t)))))
+
+(ert-deftest
     ghostel-viewport-editor-integration-test-repeated-cancel-restores-output ()
   "Repeated empty viewport cancellations should keep Ghostel output visible."
   (skip-unless (ghostel-viewport-editor--supported-host-p))

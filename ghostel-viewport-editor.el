@@ -1359,6 +1359,14 @@ an `eval' command."
           (force-window-update window)))
       (redisplay t))))
 
+(defconst ghostel-viewport-editor--return-refresh-delays '(0.05 0.2)
+  "Delays used to repaint a TUI after its editor process returns.")
+
+(defun ghostel-viewport-editor--refresh-source-after-return (request)
+  "Repaint REQUEST after its terminal application resumes from the editor."
+  (dolist (delay ghostel-viewport-editor--return-refresh-delays)
+    (run-at-time delay nil #'ghostel-viewport-editor--refresh-source request)))
+
 (defun ghostel-viewport-editor--close-viewport (request)
   "Close REQUEST's viewport and any package-created backing buffer."
   (when-let* ((buffer
@@ -1392,7 +1400,8 @@ an `eval' command."
           (when (buffer-live-p buffer)
             (kill-buffer buffer))))))
   (ghostel-viewport-editor--discard-base request)
-  (ghostel-viewport-editor--refresh-source request))
+  (ghostel-viewport-editor--refresh-source request)
+  (ghostel-viewport-editor--refresh-source-after-return request))
 
 (defun ghostel-viewport-editor--run-after-finish (request)
   "Run the optional finish callback for REQUEST."
